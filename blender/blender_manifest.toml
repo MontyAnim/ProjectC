@@ -1,0 +1,30 @@
+schema_version = "1.0.0"
+id = "batch_exporter"
+version = "1.0.0"
+name = "Monty Batch Exporter"
+tagline = "Batch-export objects, collections, or scenes as individual files"
+maintainer = "Diego Montúfar"
+type = "add-on"
+
+blender_version_min = "4.2.0"
+
+license = [
+  "SPDX:GPL-3.0-or-later",
+]
+copyright = [
+  "2026 Diego Montúfar",
+]
+
+tags = ["Import-Export", "Pipeline"]
+
+website = "https://github.com/montyanim/ProjectC"
+
+[permissions]
+files = "Export files to disk"
+
+[build]
+paths_exclude_pattern = [
+  "__pycache__/",
+  ".git/",
+  "*.zip",
+]

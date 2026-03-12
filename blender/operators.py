@@ -14,24 +14,24 @@ from typing import Any, Set
 
 import bpy
 
-from core.config import ExportJobConfig, ExportScope
-from core.file_io import ensure_output_dir
-from core.naming import NamingRule, resolve_name, resolve_output_path
-from core.report import (
+from .core.config import ExportJobConfig, ExportScope
+from .core.file_io import ensure_output_dir
+from .core.naming import NamingRule, resolve_name, resolve_output_path
+from .core.report import (
     ExportReport,
     ExportResult,
     ExportStatus,
     format_report,
 )
 
-from blender.exporter import (
+from .exporter import (
     export_single,
     get_format_by_id,
     get_supported_formats,
     load_preset_kwargs,
     resolve_preset_path,
 )
-from blender.utils import (
+from .utils import (
     ExportableItem,
     copy_textures_for_objects,
     export_at_origin,

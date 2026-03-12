@@ -6,7 +6,7 @@ Registers all operators, UI panels, menus, and preferences.
 
 from __future__ import annotations
 
-from blender import exporter, operators, preferences, ui
+from . import exporter, operators, preferences, ui
 
 
 def register() -> None:

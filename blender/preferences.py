@@ -11,13 +11,13 @@ from typing import Set
 
 import bpy
 
-from blender.exporter import get_format_items
+from .exporter import get_format_items
 
 
 class BatchExporterPreferences(bpy.types.AddonPreferences):
     """Persistent user preferences for BatchExporter."""
 
-    bl_idname = "blender"
+    bl_idname = __package__
 
     default_output_dir: bpy.props.StringProperty(
         name="Default Output Directory",

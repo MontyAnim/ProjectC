@@ -177,6 +177,14 @@ cython_debug/
 tests/reports/
 tests/archive/
 
+# ── Project: build output ───────────────────────────────────────────
+build/
+dist/
+*.zip
+
+# ── Project: dev junction (created by developer, not portable) ──────
+blender/core
+
 # Cursor  
 #  Cursor is an AI-powered code editor.`.cursorignore` specifies files/directories to 
 #  exclude from AI features like autocomplete and code analysis. Recommended for sensitive data

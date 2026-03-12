@@ -16,7 +16,7 @@ from typing import Any, Generator, List, Optional, Sequence, Set
 
 import bpy
 
-from core.config import ExportScope
+from .core.config import ExportScope
 
 
 @dataclass

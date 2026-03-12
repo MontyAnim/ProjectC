@@ -12,8 +12,8 @@ from typing import Any, Set
 
 import bpy
 
-from blender.exporter import get_format_items, get_preset_items
-from core.config import ExportScope
+from .exporter import get_format_items, get_preset_items
+from .core.config import ExportScope
 
 
 class BatchExportSettings(bpy.types.PropertyGroup):

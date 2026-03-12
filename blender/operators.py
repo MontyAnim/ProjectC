@@ -30,7 +30,10 @@ from blender.exporter import (
 )
 from blender.utils import (
     ExportableItem,
+    copy_textures_for_objects,
+    export_at_origin,
     gather_exportables,
+    group_lod_items,
     isolate_selection,
 )
 
@@ -134,6 +137,23 @@ class BATCH_OT_export(bpy.types.Operator):
             col.prop(settings, "filter_prefix")
             col.prop(settings, "filter_suffix")
 
+        # -- Advanced (collapsible) -----------------------------------
+        box = layout.box()
+        row = box.row()
+        row.prop(
+            settings, "show_advanced",
+            icon=(
+                "TRIA_DOWN" if settings.show_advanced
+                else "TRIA_RIGHT"
+            ),
+            emboss=False,
+        )
+        if settings.show_advanced:
+            col = box.column(align=True)
+            col.prop(settings, "export_at_origin")
+            col.prop(settings, "pack_lods")
+            col.prop(settings, "export_textures")
+
     @staticmethod
     def _build_preview(
         settings: Any,
@@ -151,7 +171,7 @@ class BATCH_OT_export(bpy.types.Operator):
         ctx = {
             "object_name": "ObjectName",
             "collection_name": "Collection",
-            "counter": "0",
+            "counter": "1",
         }
         name = resolve_name(rule, ctx)
         if not name:
@@ -217,15 +237,41 @@ class BATCH_OT_export(bpy.types.Operator):
         )
 
         if not items:
-            self.report(
-                {"WARNING"},
-                "Nothing to export for the selected scope.",
-            )
+            if scope == ExportScope.SELECTED:
+                msg = "No objects selected."
+            else:
+                msg = (
+                    "Nothing to export for the selected "
+                    "scope."
+                )
+            self.report({"WARNING"}, msg)
             return {"CANCELLED"}
+
+        # Optionally group LOD variants into a single file.
+        if settings.pack_lods:
+            items = group_lod_items(items)
 
         report = self._export_items(
             items, config, fmt.extension,
+            export_at_origin_enabled=(
+                settings.export_at_origin
+            ),
         )
+
+        # Copy textures alongside exported files.
+        if settings.export_textures and report.succeeded:
+            all_objects = []
+            for item in items:
+                all_objects.extend(item.objects)
+            tex_count = copy_textures_for_objects(
+                all_objects,
+                Path(config.output_dir),
+            )
+            if tex_count:
+                self.report(
+                    {"INFO"},
+                    f"Copied {tex_count} texture(s).",
+                )
 
         # Display summary.
         summary = format_report(report)
@@ -270,13 +316,20 @@ class BATCH_OT_export(bpy.types.Operator):
         items: list[ExportableItem],
         config: ExportJobConfig,
         extension: str,
+        export_at_origin_enabled: bool = False,
     ) -> ExportReport:
         """Iterate over *items* and export each one."""
 
         report = ExportReport()
         base_dir = Path(config.output_dir)
+        total = len(items)
 
-        for idx, item in enumerate(items):
+        wm = bpy.context.window_manager
+        wm.progress_begin(0, total)
+
+        for idx, item in enumerate(items, start=1):
+            wm.progress_update(idx)
+
             ctx = {
                 "object_name": item.name,
                 "collection_name": item.collection_name,
@@ -296,7 +349,11 @@ class BATCH_OT_export(bpy.types.Operator):
 
             t0 = time.perf_counter()
             try:
-                with isolate_selection(item.objects):
+                with isolate_selection(item.objects), \
+                     export_at_origin(
+                         item.objects,
+                         enabled=export_at_origin_enabled,
+                     ):
                     export_single(
                         filepath=str(out_path),
                         format_id=config.format,
@@ -323,6 +380,7 @@ class BATCH_OT_export(bpy.types.Operator):
                     ),
                 )
 
+        wm.progress_end()
         return report
 
 

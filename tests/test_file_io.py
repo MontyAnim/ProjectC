@@ -41,6 +41,13 @@ class TestEnsureOutputDir:
         result = ensure_output_dir(tmp_path)
         assert result == tmp_path
 
+    def test_invalid_drive_raises_os_error(
+        self,
+    ) -> None:
+        """An invalid drive letter raises OSError."""
+        with pytest.raises(OSError, match="Cannot create"):
+            ensure_output_dir(Path("Z:/nonexistent/path"))
+
 
 # -- is_writable ------------------------------------------------------
 

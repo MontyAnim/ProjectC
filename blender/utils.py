@@ -1,15 +1,18 @@
 """
 Blender-specific utility helpers for BatchExporter.
 
-Selection isolation, exportable-item gathering, and transform helpers
-that depend on ``bpy``.
+Selection isolation, exportable-item gathering, transform helpers,
+texture copying, and LOD grouping that depend on ``bpy``.
 """
 
 from __future__ import annotations
 
 import contextlib
+import re
+import shutil
 from dataclasses import dataclass, field
-from typing import Generator, List, Optional, Sequence
+from pathlib import Path
+from typing import Any, Generator, List, Optional, Sequence, Set
 
 import bpy
 
@@ -61,10 +64,28 @@ def isolate_selection(
     try:
         # Deselect everything, then select only requested objects.
         bpy.ops.object.select_all(action="DESELECT")
-        for obj in objects:
+        view_layer_objects = set(
+            bpy.context.view_layer.objects,
+        )
+        selectable = [
+            obj for obj in objects
+            if obj in view_layer_objects
+        ]
+        for obj in selectable:
             obj.select_set(True)
-        if objects:
-            bpy.context.view_layer.objects.active = objects[0]
+        if selectable:
+            bpy.context.view_layer.objects.active = (
+                selectable[0]
+            )
+        if not selectable:
+            raise RuntimeError(
+                "Object '"
+                + (objects[0].name if objects else "?")
+                + "' can't be selected because it is "
+                "not in View Layer '"
+                + bpy.context.view_layer.name
+                + "'!"
+            )
         yield
     finally:
         # Restore previous selection.
@@ -82,6 +103,43 @@ def isolate_selection(
                 )
             except ReferenceError:
                 pass
+
+
+@contextlib.contextmanager
+def export_at_origin(
+    objects: Sequence[bpy.types.Object],
+    enabled: bool = False,
+) -> Generator[None, None, None]:
+    """Context manager that temporarily moves *objects* to the
+    world origin for export, restoring their positions on exit.
+
+    Parameters:
+        objects: The objects to move.
+        enabled: When ``False`` this is a no-op pass-through.
+
+    Yields:
+        Control back to the caller with positions applied.
+    """
+
+    if not enabled:
+        yield
+        return
+
+    # Snapshot original locations (copy the Vector).
+    saved: list[tuple[bpy.types.Object, Any]] = [
+        (obj, obj.location.copy()) for obj in objects
+    ]
+
+    try:
+        for obj, _ in saved:
+            obj.location = (0.0, 0.0, 0.0)
+        # Force depsgraph update so exporters see the change.
+        bpy.context.view_layer.update()
+        yield
+    finally:
+        for obj, loc in saved:
+            obj.location = loc
+        bpy.context.view_layer.update()
 
 
 def gather_exportables(
@@ -171,13 +229,17 @@ def _gather_by_collection() -> List[ExportableItem]:
 
 def _gather_by_scene() -> List[ExportableItem]:
     """Each scene becomes one export item containing all its mesh
-    objects."""
+    objects that are in the current view layer."""
 
+    view_layer_objects = set(
+        bpy.context.view_layer.objects,
+    )
     items: List[ExportableItem] = []
     for scene in bpy.data.scenes:
         meshes = [
             obj for obj in scene.objects
             if obj.type == "MESH"
+            and obj in view_layer_objects
         ]
         if not meshes:
             continue
@@ -192,10 +254,11 @@ def _gather_by_scene() -> List[ExportableItem]:
 
 
 def _gather_all() -> List[ExportableItem]:
-    """Every mesh object in the file becomes its own export item."""
+    """Every mesh object in the current view layer becomes its
+    own export item."""
 
     items: List[ExportableItem] = []
-    for obj in bpy.data.objects:
+    for obj in bpy.context.view_layer.objects:
         if obj.type != "MESH":
             continue
         col_name = (
@@ -229,3 +292,102 @@ def _apply_name_filters(
             continue
         filtered.append(item)
     return filtered
+
+
+# Pattern that matches common LOD suffixes like _LOD0, _LOD1, _lod2.
+_LOD_PATTERN = re.compile(
+    r"(.+?)(?:[_\-]?[Ll][Oo][Dd]\d+)$",
+)
+
+
+def group_lod_items(
+    items: List[ExportableItem],
+) -> List[ExportableItem]:
+    """Group LOD variants into a single export item.
+
+    Objects whose names match the pattern
+    ``<base>_LOD0``, ``<base>_LOD1``, etc. are merged into one
+    item named ``<base>`` containing all LOD meshes.
+
+    Parameters:
+        items: Ungrouped export items (one object each).
+
+    Returns:
+        A list with LOD siblings combined into single items.
+        Non-LOD items are returned unchanged.
+    """
+
+    groups: dict[str, ExportableItem] = {}
+    ordered_keys: list[str] = []
+
+    for item in items:
+        match = _LOD_PATTERN.match(item.name)
+        if match:
+            base = match.group(1)
+        else:
+            base = item.name
+
+        if base in groups:
+            groups[base].objects.extend(item.objects)
+        else:
+            groups[base] = ExportableItem(
+                name=base,
+                objects=list(item.objects),
+                collection_name=item.collection_name,
+                scene_name=item.scene_name,
+            )
+            ordered_keys.append(base)
+
+    return [groups[k] for k in ordered_keys]
+
+
+def copy_textures_for_objects(
+    objects: Sequence[bpy.types.Object],
+    output_dir: Path,
+) -> int:
+    """Copy textures used by *objects* into per-material folders.
+
+    Each material gets a subfolder inside *output_dir*/textures/.
+    Textures that have already been copied are skipped to avoid
+    duplicates (e.g. shared atlas textures).
+
+    Parameters:
+        objects: Blender objects whose materials to scan.
+        output_dir: Root export directory (textures go into
+            ``output_dir / "textures" / <material_name>``).
+
+    Returns:
+        The number of texture files actually copied.
+    """
+
+    textures_root = output_dir / "textures"
+    copied_paths: Set[str] = set()
+    count = 0
+
+    for obj in objects:
+        if not hasattr(obj, "data") or obj.data is None:
+            continue
+        for slot in obj.material_slots:
+            mat = slot.material
+            if mat is None or not mat.use_nodes:
+                continue
+            mat_dir = textures_root / mat.name
+            for node in mat.node_tree.nodes:
+                if node.type != "TEX_IMAGE":
+                    continue
+                img = node.image
+                if img is None or img.packed_file is not None:
+                    continue
+                src = bpy.path.abspath(img.filepath)
+                if not src or src in copied_paths:
+                    continue
+                src_path = Path(src)
+                if not src_path.is_file():
+                    continue
+                mat_dir.mkdir(parents=True, exist_ok=True)
+                dst = mat_dir / src_path.name
+                shutil.copy2(str(src_path), str(dst))
+                copied_paths.add(src)
+                count += 1
+
+    return count

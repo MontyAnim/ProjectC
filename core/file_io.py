@@ -22,10 +22,16 @@ def ensure_output_dir(path: Path) -> Path:
         The same *path* for convenient chaining.
 
     Raises:
-        OSError: If the directory cannot be created.
+        OSError: If the directory cannot be created (e.g.
+            invalid drive letter or permissions error).
     """
 
-    path.mkdir(parents=True, exist_ok=True)
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+    except (FileNotFoundError, OSError) as exc:
+        raise OSError(
+            f"Cannot create output directory '{path}': {exc}"
+        ) from exc
     return path
 
 

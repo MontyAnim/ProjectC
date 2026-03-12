@@ -143,6 +143,41 @@ class BatchExportSettings(bpy.types.PropertyGroup):
         default=False,
     )  # type: ignore[valid-type]
 
+    show_advanced: bpy.props.BoolProperty(
+        name="Advanced",
+        default=False,
+    )  # type: ignore[valid-type]
+
+    # -- Advanced options ---------------------------------------------
+
+    export_at_origin: bpy.props.BoolProperty(
+        name="Export at Origin",
+        description=(
+            "Temporarily move objects to world origin "
+            "(0, 0, 0) during export. Original positions "
+            "are restored afterwards"
+        ),
+        default=False,
+    )  # type: ignore[valid-type]
+
+    pack_lods: bpy.props.BoolProperty(
+        name="Pack LODs",
+        description=(
+            "Group LOD variants (e.g. Cube_LOD0, Cube_LOD1) "
+            "into a single export file"
+        ),
+        default=False,
+    )  # type: ignore[valid-type]
+
+    export_textures: bpy.props.BoolProperty(
+        name="Export Textures",
+        description=(
+            "Copy textures used by exported objects into "
+            "a subfolder per material, skipping duplicates"
+        ),
+        default=False,
+    )  # type: ignore[valid-type]
+
 
 def menu_draw(
     self: Any,

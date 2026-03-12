@@ -1,0 +1,778 @@
+{
+  "app_name": "Application",
+  "tester": "Developer",
+  "started_at": "2026-03-11T16:47:24.346802",
+  "completed_at": "2026-03-11T21:25:38.999765",
+  "summary": {
+    "total": 37,
+    "passed": 33,
+    "failed": 4,
+    "skipped": 0,
+    "pending": 0,
+    "pass_rate": "89.2%"
+  },
+  "categories": [
+    {
+      "id": "1",
+      "title": "Setup & Registration",
+      "tests": [
+        {
+          "id": "1.1",
+          "title": "Add-on Registration",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Open Blender 4.0+",
+            "Open the Scripting workspace",
+            "Run the registration script (sys.path insert + import blender; blender.register())",
+            "Check the system console for errors"
+          ],
+          "expected": [
+            "Console prints 'BatchExporter registered!' with no errors",
+            "No Python tracebacks in the system console",
+            "All operators and property groups are registered"
+          ],
+          "references": [
+            "blender/__init__.py :: register()",
+            "blender/ui.py :: register()",
+            "blender/operators.py :: register()",
+            "blender/preferences.py :: register()"
+          ]
+        },
+        {
+          "id": "1.2",
+          "title": "Menu Entry Visible",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "After registration, go to File → Export",
+            "Look for 'Batch Export…' entry at the bottom of the menu"
+          ],
+          "expected": [
+            "'Batch Export…' appears in the Export menu with an EXPORT icon",
+            "Clicking it opens the popup dialog (not an immediate error)"
+          ],
+          "references": [
+            "blender/ui.py :: menu_draw()"
+          ]
+        },
+        {
+          "id": "1.3",
+          "title": "Add-on Reload (Hot Reload)",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Make a code change to any blender/ or core/ module",
+            "Run the reload script (unregister → flush sys.modules → re-register)",
+            "Open File → Export → Batch Export…"
+          ],
+          "expected": [
+            "Unregister completes without errors",
+            "Re-register completes without errors",
+            "Code changes are reflected in the UI"
+          ],
+          "references": [
+            "blender/__init__.py :: unregister()",
+            "blender/__init__.py :: register()"
+          ]
+        },
+        {
+          "id": "1.4",
+          "title": "Add-on Preferences",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Go to Edit → Preferences → Add-ons",
+            "Locate BatchExporter and expand preferences",
+            "Set a default output directory, default format, default separator",
+            "Close and reopen preferences"
+          ],
+          "expected": [
+            "Preference fields are displayed (output dir, format, separator)",
+            "Values persist after closing the preferences panel"
+          ],
+          "references": [
+            "blender/preferences.py :: BatchExporterPreferences"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "title": "Popup Dialog UI",
+      "tests": [
+        {
+          "id": "2.1",
+          "title": "Dialog Opens with Defaults",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Click File → Export → Batch Export…",
+            "Observe the popup dialog layout"
+          ],
+          "expected": [
+            "Output section visible: directory picker, format dropdown, scope dropdown",
+            "Preview section visible with a sample filename (e.g. 'ObjectName.fbx')",
+            "Naming section collapsed (triangle pointing right)",
+            "Filters section collapsed (triangle pointing right)",
+            "OK and Cancel buttons at the bottom"
+          ],
+          "references": [
+            "blender/operators.py :: BATCH_OT_export.draw()",
+            "blender/operators.py :: BATCH_OT_export.invoke()"
+          ]
+        },
+        {
+          "id": "2.2",
+          "title": "Collapsible Sections Toggle",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Open the Batch Export dialog",
+            "Click the 'Naming' triangle to expand it",
+            "Verify all naming fields appear",
+            "Click the 'Naming' triangle again to collapse",
+            "Repeat for the 'Filters' section"
+          ],
+          "expected": [
+            "Naming section expands showing: Prefix, Suffix, Separator, Use Object Name, Use Collection Name, Counter Digits, Create Subdirectories",
+            "Naming section collapses hiding all those fields",
+            "Filters section expands showing: Filter Prefix, Filter Suffix",
+            "Filters section collapses hiding those fields",
+            "Triangle icon toggles between TRIA_RIGHT and TRIA_DOWN"
+          ],
+          "references": [
+            "blender/operators.py :: BATCH_OT_export.draw()",
+            "blender/ui.py :: BatchExportSettings.show_naming",
+            "blender/ui.py :: BatchExportSettings.show_filters"
+          ]
+        },
+        {
+          "id": "2.3",
+          "title": "Live Filename Preview",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Open the Batch Export dialog",
+            "Note the default preview text",
+            "Expand Naming and set Prefix to 'SM'",
+            "Observe the preview update",
+            "Set Suffix to 'LOD0'",
+            "Enable 'Use Collection Name'",
+            "Change format to glTF",
+            "Enable 'Create Subdirectories'"
+          ],
+          "expected": [
+            "Default preview: 'ObjectName.fbx'",
+            "After prefix: 'SM_ObjectName.fbx'",
+            "After suffix: 'SM_ObjectName_LOD0.fbx'",
+            "After collection name: 'SM_Collection_ObjectName_LOD0.fbx'",
+            "After glTF format: 'SM_Collection_ObjectName_LOD0.glb'",
+            "After subdirs: 'SM/SM_Collection_ObjectName_LOD0.glb'"
+          ],
+          "references": [
+            "blender/operators.py :: BATCH_OT_export._build_preview()"
+          ]
+        },
+        {
+          "id": "2.4",
+          "title": "Format Dropdown Lists Available Formats",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Open the Batch Export dialog",
+            "Click the Format dropdown",
+            "Review the list of available formats"
+          ],
+          "expected": [
+            "FBX (.fbx) is listed",
+            "glTF (.glb/.gltf) is listed",
+            "At least OBJ, USD, Alembic also appear if their operators are enabled",
+            "Only formats whose bpy.ops.export_scene.* operator exists are shown"
+          ],
+          "references": [
+            "blender/exporter.py :: get_supported_formats()",
+            "blender/exporter.py :: get_format_items()"
+          ]
+        },
+        {
+          "id": "2.5",
+          "title": "Scope Dropdown Options",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Open the Batch Export dialog",
+            "Click the Scope dropdown"
+          ],
+          "expected": [
+            "Four options: 'Selected Objects', 'Collections', 'Scenes', 'All Objects'",
+            "Each has a descriptive tooltip on hover"
+          ],
+          "references": [
+            "blender/ui.py :: BatchExportSettings.export_scope"
+          ]
+        },
+        {
+          "id": "2.6",
+          "title": "Output Directory Picker",
+          "result": "pass",
+          "notes": "output section has two folder symbols, when hovering, one reads accept and the other pick output directory",
+          "steps": [
+            "Open the Batch Export dialog",
+            "Click the folder icon next to the output directory field",
+            "Navigate to a directory and confirm"
+          ],
+          "expected": [
+            "Blender file browser opens",
+            "After selecting a directory, the path appears in the output field",
+            "Path is stored in the scene settings"
+          ],
+          "references": [
+            "blender/operators.py :: BATCH_OT_pick_output_dir"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "3",
+      "title": "Export — Scope Modes",
+      "tests": [
+        {
+          "id": "3.1",
+          "title": "Export Selected Objects",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Create a scene with 3 mesh objects (e.g. Cube, Sphere, Cylinder)",
+            "Select Cube and Sphere (not Cylinder)",
+            "Open Batch Export, set scope to 'Selected Objects'",
+            "Set output dir to a temp folder, format to FBX",
+            "Click OK"
+          ],
+          "expected": [
+            "Two .fbx files created: Cube.fbx and Sphere.fbx",
+            "Cylinder.fbx is NOT created",
+            "Info area shows 'Batch export complete: 2 succeeded, 0 failed'"
+          ],
+          "references": [
+            "blender/utils.py :: _gather_selected()",
+            "blender/operators.py :: BATCH_OT_export.execute()"
+          ]
+        },
+        {
+          "id": "3.2",
+          "title": "Export by Collections",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Create 2 collections: 'Props' (with 2 meshes) and 'Env' (with 1 mesh)",
+            "Open Batch Export, set scope to 'Collections'",
+            "Set output dir, format to FBX, click OK"
+          ],
+          "expected": [
+            "Two .fbx files created: Props.fbx and Env.fbx",
+            "Props.fbx contains both meshes from the Props collection",
+            "Env.fbx contains the single mesh from Env"
+          ],
+          "references": [
+            "blender/utils.py :: _gather_by_collection()"
+          ]
+        },
+        {
+          "id": "3.3",
+          "title": "Export by Scenes",
+          "result": "fail",
+          "notes": "==================================================\n  BatchExporter — Export Report\n==================================================\n  Total items : 2\n  Succeeded   : 1\n  Failed      : 1\n  Skipped     : 0\n  Duration    : 0.02s\n--------------------------------------------------\n  FAILURES:\n    • Room_Empty: Error: Object 'room_lowpoly' can't be selected because it is not in View Layer 'ViewLayer'!\n\n--------------------------------------------------\n  EXPORTED:\n    ✓ C:\\Users\\Diego Montúfar\\Documents\\TA_Portolio\\Tests\\Batch Export\\Isometric Diorama\\Room.fbx (0.02s)\n==================================================\nBatch export complete: 1 succeeded, 1 failed.\n",
+          "steps": [
+            "Create 2 scenes, each with at least 1 mesh object",
+            "Open Batch Export, set scope to 'Scenes'",
+            "Set output dir, format to FBX, click OK"
+          ],
+          "expected": [
+            "One .fbx file per scene, named after the scene",
+            "Each file contains the meshes from that scene"
+          ],
+          "references": [
+            "blender/utils.py :: _gather_by_scene()"
+          ]
+        },
+        {
+          "id": "3.4",
+          "title": "Export All Objects",
+          "result": "fail",
+          "notes": "==================================================\n  BatchExporter — Export Report\n==================================================\n  Total items : 29\n  Succeeded   : 28\n  Failed      : 1\n  Skipped     : 0\n  Duration    : 0.13s\n--------------------------------------------------\n  FAILURES:\n    • room_lowpoly_Empy: Error: Object 'room_lowpoly_Empy' can't be selected because it is not in View Layer 'ViewLayer'!\n\n--------------------------------------------------\n  EXPORTED:\n    ✓ C:\\Users\\Diego Montúfar\\Documents\\TA_Portolio\\Tests\\Batch Export\\Isometric Diorama\\Collection\\Collection_bed_lowpoly.fbx (0.01s)\n    ✓ C:\\Users\\Diego Montúfar\\Documents\\TA_Portolio\\Tests\\Batch Export\\Isometric Diorama\\Collection\\Collection_blanket_lowpoly.fbx (0.01s)\n    ✓ C:\\Users\\Diego Montúfar\\Documents\\TA_Portolio\\Tests\\Batch Export\\Isometric Diorama\\Collection\\Collection_book_lowpoly.fbx (0.00s)\n    ✓ C:\\Users\\Diego Montúfar\\Documents\\TA_Portolio\\Tests\\Batch Export\\Isometric Diorama\\Collection\\Collection_box_lowpoly.fbx (0.00s)\n    ✓ C:\\Users\\Diego Montúfar\\Documents\\TA_Portolio\\Tests\\Batch Export\\Isometric Diorama\\Collection\\Collection_cupboards_lowpoly.fbx (0.00s)\n    ✓ C:\\Users\\Diego Montúfar\\Documents\\TA_Portolio\\Tests\\Batch Export\\Isometric Diorama\\Collection\\Collection_desk_lowpoly.fbx (0.01s)\n    ✓ C:\\Users\\Diego Montúfar\\Documents\\TA_Portolio\\Tests\\Batch Export\\Isometric Diorama\\Collection\\Collection_fan_01_lowpoly.fbx (0.01s)\n    ✓ C:\\Users\\Diego Montúfar\\Documents\\TA_Portolio\\Tests\\Batch Export\\Isometric Diorama\\Collection\\Collection_fan_02_lowpoly.fbx (0.00s)\n    ✓ C:\\Users\\Diego Montúfar\\Documents\\TA_Portolio\\Tests\\Batch Export\\Isometric Diorama\\Collection\\Collection_laptop_lowpoly.fbx (0.00s)\n    ✓ C:\\Users\\Diego Montúfar\\Documents\\TA_Portolio\\Tests\\Batch Export\\Isometric Diorama\\Collection\\Collection_mattress_lowpoly.fbx (0.00s)\n    ✓ C:\\Users\\Diego Montúfar\\Documents\\TA_Portolio\\Tests\\Batch Export\\Isometric Diorama\\Collection\\Collection_photos_lowpoly.fbx (0.00s)\n    ✓ C:\\Users\\Diego Montúfar\\Documents\\TA_Portolio\\Tests\\Batch Export\\Isometric Diorama\\Collection\\Collection_pillow_01_lowpoly.fbx (0.00s)\n    ✓ C:\\Users\\Diego Montúfar\\Documents\\TA_Portolio\\Tests\\Batch Export\\Isometric Diorama\\Collection\\Collection_pillow_02_lowpoly.fbx (0.00s)\n    ✓ C:\\Users\\Diego Montúfar\\Documents\\TA_Portolio\\Tests\\Batch Export\\Isometric Diorama\\Collection\\Collection_pillow_03_lowpoly.fbx (0.00s)\n    ✓ C:\\Users\\Diego Montúfar\\Documents\\TA_Portolio\\Tests\\Batch Export\\Isometric Diorama\\Collection\\Collection_pillow_big_lowpoly.fbx (0.00s)\n    ✓ C:\\Users\\Diego Montúfar\\Documents\\TA_Portolio\\Tests\\Batch Export\\Isometric Diorama\\Collection\\Collection_plant_big_lowpoly.fbx (0.01s)\n    ✓ C:\\Users\\Diego Montúfar\\Documents\\TA_Portolio\\Tests\\Batch Export\\Isometric Diorama\\Collection\\Collection_plant_small_lowpoly.fbx (0.00s)\n    ✓ C:\\Users\\Diego Montúfar\\Documents\\TA_Portolio\\Tests\\Batch Export\\Isometric Diorama\\Props\\Props_pouf_legs_lowpoly.fbx (0.00s)\n    ✓ C:\\Users\\Diego Montúfar\\Documents\\TA_Portolio\\Tests\\Batch Export\\Isometric Diorama\\Props\\Props_pouf_seat_lowpoly.fbx (0.00s)\n    ✓ C:\\Users\\Diego Montúfar\\Documents\\TA_Portolio\\Tests\\Batch Export\\Isometric Diorama\\Collection\\Collection_ray_lowpoly.fbx (0.00s)\n    ✓ C:\\Users\\Diego Montúfar\\Documents\\TA_Portolio\\Tests\\Batch Export\\Isometric Diorama\\Env\\Env_room_lowpoly.fbx (0.00s)\n    ✓ C:\\Users\\Diego Montúfar\\Documents\\TA_Portolio\\Tests\\Batch Export\\Isometric Diorama\\Collection\\Collection_shoe_lowpoly.fbx (0.00s)\n    ✓ C:\\Users\\Diego Montúfar\\Documents\\TA_Portolio\\Tests\\Batch Export\\Isometric Diorama\\Collection\\Collection_shutter_lowpoly.fbx (0.00s)\n    ✓ C:\\Users\\Diego Montúfar\\Documents\\TA_Portolio\\Tests\\Batch Export\\Isometric Diorama\\Collection\\Collection_sock_lowpoly.fbx (0.00s)\n    ✓ C:\\Users\\Diego Montúfar\\Documents\\TA_Portolio\\Tests\\Batch Export\\Isometric Diorama\\Collection\\Collection_timer_lowpoly.fbx (0.00s)\n    ✓ C:\\Users\\Diego Montúfar\\Documents\\TA_Portolio\\Tests\\Batch Export\\Isometric Diorama\\Collection\\Collection_toy_lowpoly.fbx (0.00s)\n    ✓ C:\\Users\\Diego Montúfar\\Documents\\TA_Portolio\\Tests\\Batch Export\\Isometric Diorama\\Collection\\Collection_wardrobe_lowpoly.fbx (0.00s)\n    ✓ C:\\Users\\Diego Montúfar\\Documents\\TA_Portolio\\Tests\\Batch Export\\Isometric Diorama\\Collection\\Collection_window_lowpoly.fbx (0.00s)\n==================================================\nBatch export complete: 28 succeeded, 1 failed.\n",
+          "steps": [
+            "Create a scene with 4 mesh objects",
+            "Do NOT select anything (selection doesn't matter for 'All')",
+            "Open Batch Export, set scope to 'All Objects'",
+            "Set output dir, format to FBX, click OK"
+          ],
+          "expected": [
+            "Four individual .fbx files created, one per mesh object",
+            "Non-mesh objects (cameras, lights) are excluded"
+          ],
+          "references": [
+            "blender/utils.py :: _gather_all()"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "4",
+      "title": "Export — Naming & Subdirectories",
+      "tests": [
+        {
+          "id": "4.1",
+          "title": "Prefix and Suffix",
+          "result": "pass",
+          "notes": "LOD support does not work like just a suffix, LODs are often packed into a single fbx, e.g. cube_LOD0, cube_LOD1, cube_LOD2 should all be detected to be the same object and packed into the same fbx, user should have the option to pack LODs if they want, otherwise treat them as separate objects\n",
+          "steps": [
+            "Select 1 mesh object named 'Cube'",
+            "Open Batch Export, expand Naming",
+            "Set Prefix='SM', Suffix='LOD0', scope='Selected Objects'",
+            "Export as FBX"
+          ],
+          "expected": [
+            "Output file is named 'SM_Cube_LOD0.fbx'"
+          ],
+          "references": [
+            "core/naming.py :: resolve_name()"
+          ]
+        },
+        {
+          "id": "4.2",
+          "title": "Custom Separator",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Select 1 mesh object named 'Cube'",
+            "Set Prefix='SM', Separator='-'",
+            "Export as FBX"
+          ],
+          "expected": [
+            "Output file is named 'SM-Cube.fbx'"
+          ],
+          "references": [
+            "core/naming.py :: resolve_name()"
+          ]
+        },
+        {
+          "id": "4.3",
+          "title": "Collection Name in Filename",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Place 'Cube' inside a collection named 'Props'",
+            "Select Cube, expand Naming",
+            "Enable 'Use Collection Name'",
+            "Export as FBX with scope='Selected Objects'"
+          ],
+          "expected": [
+            "Output file is named 'Props_Cube.fbx'"
+          ],
+          "references": [
+            "core/naming.py :: resolve_name()"
+          ]
+        },
+        {
+          "id": "4.4",
+          "title": "Counter Digits",
+          "result": "pass",
+          "notes": "Audit counter digits, should start by 1, e.g. _01, _001 _0001",
+          "steps": [
+            "Select 3 mesh objects",
+            "Expand Naming, set Counter Digits to 3",
+            "Export as FBX with scope='Selected Objects'"
+          ],
+          "expected": [
+            "Files have zero-padded counters: e.g. 'Cube_000.fbx', 'Sphere_001.fbx', 'Cylinder_002.fbx'"
+          ],
+          "references": [
+            "core/naming.py :: resolve_name()"
+          ]
+        },
+        {
+          "id": "4.5",
+          "title": "Create Subdirectories by Prefix",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Select 2 objects, set Prefix='SM'",
+            "Enable 'Create Subdirectories'",
+            "Export as FBX"
+          ],
+          "expected": [
+            "A subdirectory 'SM/' is created inside the output dir",
+            "Both files are placed inside 'SM/'"
+          ],
+          "references": [
+            "core/naming.py :: resolve_output_path()",
+            "core/naming.py :: _resolve_subdir()"
+          ]
+        },
+        {
+          "id": "4.6",
+          "title": "Create Subdirectories by Collection (No Prefix)",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Place objects in collection 'Props', leave Prefix empty",
+            "Enable 'Use Collection Name' and 'Create Subdirectories'",
+            "Set scope to 'Selected Objects', export"
+          ],
+          "expected": [
+            "A subdirectory 'Props/' is created",
+            "Files are placed inside 'Props/'"
+          ],
+          "references": [
+            "core/naming.py :: _resolve_subdir()"
+          ]
+        },
+        {
+          "id": "4.7",
+          "title": "Special Characters in Object Names",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Rename a mesh object to 'My:Object<Test>'",
+            "Select it and export as FBX with default naming"
+          ],
+          "expected": [
+            "Illegal filename characters are stripped",
+            "File is named 'MyObjectTest.fbx' (no colons or angle brackets)"
+          ],
+          "references": [
+            "core/naming.py :: sanitize_token()"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "5",
+      "title": "Export — Filters",
+      "tests": [
+        {
+          "id": "5.1",
+          "title": "Filter by Prefix",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Create 3 objects: 'SM_Chair', 'SM_Table', 'Light_Spot'",
+            "Set scope to 'All Objects'",
+            "Expand Filters, set Filter Prefix='SM_'",
+            "Export as FBX"
+          ],
+          "expected": [
+            "Only 'SM_Chair.fbx' and 'SM_Table.fbx' are exported",
+            "'Light_Spot' is excluded",
+            "Report shows 2 succeeded"
+          ],
+          "references": [
+            "blender/utils.py :: _apply_name_filters()"
+          ]
+        },
+        {
+          "id": "5.2",
+          "title": "Filter by Suffix",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Create 3 objects: 'Chair_LOD0', 'Table_LOD0', 'Chair_LOD1'",
+            "Set scope to 'All Objects'",
+            "Set Filter Suffix='_LOD0'",
+            "Export as FBX"
+          ],
+          "expected": [
+            "Only 'Chair_LOD0.fbx' and 'Table_LOD0.fbx' are exported",
+            "'Chair_LOD1' is excluded"
+          ],
+          "references": [
+            "blender/utils.py :: _apply_name_filters()"
+          ]
+        },
+        {
+          "id": "5.3",
+          "title": "Combined Prefix + Suffix Filter",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Create objects: 'SM_Chair_LOD0', 'SM_Chair_LOD1', 'ENV_Floor_LOD0'",
+            "Set Filter Prefix='SM_', Filter Suffix='_LOD0'",
+            "Export all"
+          ],
+          "expected": [
+            "Only 'SM_Chair_LOD0.fbx' is exported (matches both prefix AND suffix)"
+          ],
+          "references": [
+            "blender/utils.py :: _apply_name_filters()"
+          ]
+        },
+        {
+          "id": "5.4",
+          "title": "Filter Matches Nothing",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Create some objects with names that don't match any filter",
+            "Set Filter Prefix='ZZZZZ'",
+            "Attempt to export"
+          ],
+          "expected": [
+            "Warning: 'Nothing to export for the selected scope'",
+            "No files created, operator returns CANCELLED"
+          ],
+          "references": [
+            "blender/operators.py :: BATCH_OT_export.execute()"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "6",
+      "title": "Export — Multiple Formats",
+      "tests": [
+        {
+          "id": "6.1",
+          "title": "Export as FBX",
+          "result": "pass",
+          "notes": "New feature: option to export textures too, if selected, textures will be included in a folder, subfolder for material but no duplicate material exports if an object has a material that has already been exported, skip (useful when using atlases), keep the same UX guidelines used for other panels/sections",
+          "steps": [
+            "Select 1 object, set format to FBX, export"
+          ],
+          "expected": [
+            "A valid .fbx file is created",
+            "File can be re-imported into Blender or a game engine"
+          ],
+          "references": [
+            "blender/exporter.py :: export_single()"
+          ]
+        },
+        {
+          "id": "6.2",
+          "title": "Export as glTF",
+          "result": "pass",
+          "notes": "gltf takes more time to export than fbx, when exporting multiple objects, blender freezes, would be better to avoid is not responding state and show a progress \n",
+          "steps": [
+            "Select 1 object, set format to glTF, export"
+          ],
+          "expected": [
+            "A valid .glb file is created",
+            "File can be opened in a glTF viewer or re-imported"
+          ],
+          "references": [
+            "blender/exporter.py :: export_single()"
+          ]
+        },
+        {
+          "id": "6.3",
+          "title": "Export as OBJ",
+          "result": "fail",
+          "notes": "==================================================\n  BatchExporter — Export Report\n==================================================\n  Total items : 1\n  Succeeded   : 0\n  Failed      : 1\n  Skipped     : 0\n  Duration    : 0.00s\n--------------------------------------------------\n  FAILURES:\n    • pouf_seat_lowpoly_LOD1: Calling operator \"bpy.ops.export_scene.obj\" error, could not be found\n--------------------------------------------------\n",
+          "steps": [
+            "Select 1 object, set format to OBJ, export"
+          ],
+          "expected": [
+            "A valid .obj file is created"
+          ],
+          "references": [
+            "blender/exporter.py :: export_single()"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "7",
+      "title": "Error Handling",
+      "tests": [
+        {
+          "id": "7.1",
+          "title": "No Output Directory",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Open Batch Export dialog",
+            "Leave the output directory empty",
+            "Click OK"
+          ],
+          "expected": [
+            "Error message: 'No output directory specified.'",
+            "No files created, Blender remains usable"
+          ],
+          "references": [
+            "blender/operators.py :: BATCH_OT_export.execute()"
+          ]
+        },
+        {
+          "id": "7.2",
+          "title": "Nothing Selected (Selected Objects Scope)",
+          "result": "pass",
+          "notes": "Prompt the user if nothing is selected when using selected objects instead of nothing to export for the selected scope, this is confusing for user",
+          "steps": [
+            "Deselect all objects (Alt+A)",
+            "Open Batch Export, set scope to 'Selected Objects'",
+            "Set a valid output directory, click OK"
+          ],
+          "expected": [
+            "Warning: 'Nothing to export for the selected scope.'",
+            "No files created, no crash"
+          ],
+          "references": [
+            "blender/operators.py :: BATCH_OT_export.execute()",
+            "blender/utils.py :: _gather_selected()"
+          ]
+        },
+        {
+          "id": "7.3",
+          "title": "Invalid Output Path",
+          "result": "fail",
+          "notes": "Python: Traceback (most recent call last):\n  File \"C:\\Program Files\\Blender Foundation\\Blender 4.5\\4.5\\python\\Lib\\pathlib.py\", line 1116, in mkdir\n    os.mkdir(self, mode)\nFileNotFoundError: [WinError 3] El sistema no puede encontrar la ruta especificada: 'Z:\\\\Users\\\\Diego Montúfar\\\\Documents\\\\TA_Portolio\\\\Tests\\\\Batch Export\\\\Isometric Diorama\\\\Props'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"C:\\Program Files\\Blender Foundation\\Blender 4.5\\4.5\\python\\Lib\\pathlib.py\", line 1116, in mkdir\n    os.mkdir(self, mode)\nFileNotFoundError: [WinError 3] El sistema no puede encontrar la ruta especificada: 'Z:\\\\Users\\\\Diego Montúfar\\\\Documents\\\\TA_Portolio\\\\Tests\\\\Batch Export\\\\Isometric Diorama'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"C:\\Program Files\\Blender Foundation\\Blender 4.5\\4.5\\python\\Lib\\pathlib.py\", line 1116, in mkdir\n    os.mkdir(self, mode)\nFileNotFoundError: [WinError 3] El sistema no puede encontrar la ruta especificada: 'Z:\\\\Users\\\\Diego Montúfar\\\\Documents\\\\TA_Portolio\\\\Tests\\\\Batch Export'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"C:\\Program Files\\Blender Foundation\\Blender 4.5\\4.5\\python\\Lib\\pathlib.py\", line 1116, in mkdir\n    os.mkdir(self, mode)\nFileNotFoundError: [WinError 3] El sistema no puede encontrar la ruta especificada: 'Z:\\\\Users\\\\Diego Montúfar\\\\Documents\\\\TA_Portolio\\\\Tests'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"C:\\Program Files\\Blender Foundation\\Blender 4.5\\4.5\\python\\Lib\\pathlib.py\", line 1116, in mkdir\n    os.mkdir(self, mode)\nFileNotFoundError: [WinError 3] El sistema no puede encontrar la ruta especificada: 'Z:\\\\Users\\\\Diego Montúfar\\\\Documents\\\\TA_Portolio'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"C:\\Program Files\\Blender Foundation\\Blender 4.5\\4.5\\python\\Lib\\pathlib.py\", line 1116, in mkdir\n    os.mkdir(self, mode)\nFileNotFoundError: [WinError 3] El sistema no puede encontrar la ruta especificada: 'Z:\\\\Users\\\\Diego Montúfar\\\\Documents'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"C:\\Program Files\\Blender Foundation\\Blender 4.5\\4.5\\python\\Lib\\pathlib.py\", line 1116, in mkdir\n    os.mkdir(self, mode)\nFileNotFoundError: [WinError 3] El sistema no puede encontrar la ruta especificada: 'Z:\\\\Users\\\\Diego Montúfar'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"C:\\Program Files\\Blender Foundation\\Blender 4.5\\4.5\\python\\Lib\\pathlib.py\", line 1116, in mkdir\n    os.mkdir(self, mode)\nFileNotFoundError: [WinError 3] El sistema no puede encontrar la ruta especificada: 'Z:\\\\Users'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"C:\\Program Files\\Blender Foundation\\Blender 4.5\\4.5\\python\\Lib\\pathlib.py\", line 1120, in mkdir\n    self.parent.mkdir(parents=True, exist_ok=True)\n  File \"C:\\Program Files\\Blender Foundation\\Blender 4.5\\4.5\\python\\Lib\\pathlib.py\", line 1120, in mkdir\n    self.parent.mkdir(parents=True, exist_ok=True)\n  File \"C:\\Program Files\\Blender Foundation\\Blender 4.5\\4.5\\python\\Lib\\pathlib.py\", line 1120, in mkdir\n    self.parent.mkdir(parents=True, exist_ok=True)\n  [Previous line repeated 5 more times]\n  File \"C:\\Program Files\\Blender Foundation\\Blender 4.5\\4.5\\python\\Lib\\pathlib.py\", line 1116, in mkdir\n    os.mkdir(self, mode)\nFileNotFoundError: [WinError 3] El sistema no puede encontrar la ruta especificada: 'Z:\\\\'\n",
+          "steps": [
+            "Set output directory to a non-writable or invalid path (e.g. 'Z:\\nonexistent\\path')",
+            "Select an object and attempt to export"
+          ],
+          "expected": [
+            "Export fails gracefully with an error in the report",
+            "Report shows 0 succeeded, 1+ failed with error details",
+            "Blender remains usable"
+          ],
+          "references": [
+            "blender/operators.py :: BATCH_OT_export._export_items()",
+            "core/file_io.py :: ensure_output_dir()"
+          ]
+        },
+        {
+          "id": "7.4",
+          "title": "Cancel Button",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Open the Batch Export dialog",
+            "Click Cancel"
+          ],
+          "expected": [
+            "Dialog closes",
+            "No export happens, no files created",
+            "No errors in the console"
+          ],
+          "references": [
+            "blender/operators.py :: BATCH_OT_export.invoke()"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "8",
+      "title": "Export Report",
+      "tests": [
+        {
+          "id": "8.1",
+          "title": "Successful Export Report",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Export 3 objects successfully as FBX",
+            "Check the Info editor (bottom bar) for report lines"
+          ],
+          "expected": [
+            "Report header: 'BatchExporter — Export Report'",
+            "Shows 'Total items : 3', 'Succeeded : 3', 'Failed : 0'",
+            "EXPORTED section lists each file path with duration",
+            "Final line: 'Batch export complete: 3 succeeded, 0 failed'"
+          ],
+          "references": [
+            "core/report.py :: format_report()",
+            "blender/operators.py :: BATCH_OT_export.execute()"
+          ]
+        },
+        {
+          "id": "8.2",
+          "title": "Mixed Success/Failure Report",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Set up a scenario where 1 export succeeds and 1 fails (e.g. one object has issues)",
+            "Run batch export and check the report"
+          ],
+          "expected": [
+            "Report shows correct counts for succeeded and failed",
+            "FAILURES section lists the failed item with error description",
+            "EXPORTED section lists only the successful item"
+          ],
+          "references": [
+            "core/report.py :: format_report()",
+            "core/report.py :: ExportReport.failed",
+            "core/report.py :: ExportReport.succeeded"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "9",
+      "title": "Selection Isolation",
+      "tests": [
+        {
+          "id": "9.1",
+          "title": "Selection Restored After Export",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Select Cube and Sphere in a scene with 5 objects",
+            "Run Batch Export with scope 'Selected Objects'",
+            "After export completes, check the selection state"
+          ],
+          "expected": [
+            "Cube and Sphere are still selected after the export",
+            "The active object is unchanged",
+            "Other objects remain unselected"
+          ],
+          "references": [
+            "blender/utils.py :: isolate_selection()"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "10",
+      "title": "Performance & Stability",
+      "tests": [
+        {
+          "id": "10.1",
+          "title": "Batch Export Many Objects",
+          "result": "pass",
+          "notes": "New feature: new option that lets the user decide if he wants to export the object with the current position or at location 0,0,0 objects position in blender will remain unchanged but when importing back or to a game engine, its location will be at origin",
+          "steps": [
+            "Create a scene with 50+ mesh objects",
+            "Select all, set scope to 'Selected Objects'",
+            "Export as FBX and observe timing"
+          ],
+          "expected": [
+            "All 50+ files created without errors",
+            "Report shows per-file duration and total duration",
+            "Blender remains responsive after export"
+          ],
+          "references": [
+            "blender/operators.py :: BATCH_OT_export._export_items()"
+          ]
+        },
+        {
+          "id": "10.2",
+          "title": "Repeated Exports to Same Directory",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Export the same objects twice to the same output directory",
+            "Observe behavior on file overwrite"
+          ],
+          "expected": [
+            "Files are overwritten without error",
+            "Second export completes successfully",
+            "No duplicate or orphaned files"
+          ],
+          "references": [
+            "blender/exporter.py :: export_single()"
+          ]
+        }
+      ]
+    }
+  ]
+}

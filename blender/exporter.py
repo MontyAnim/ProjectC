@@ -43,7 +43,7 @@ _BUILTIN_FORMATS: List[FormatInfo] = [
     FormatInfo("GLTF", "glTF (.glb/.gltf)", ".glb",
                "export_scene.gltf"),
     FormatInfo("OBJ", "Wavefront OBJ (.obj)", ".obj",
-               "export_scene.obj"),
+               "wm.obj_export"),
     FormatInfo("USD", "Universal Scene Description (.usd)",
                ".usdc", "export_scene.usd"),
     FormatInfo("ABC", "Alembic (.abc)", ".abc",
@@ -152,13 +152,20 @@ def export_single(
 
     op_func = _resolve_operator(fmt.operator)
 
-    # Always pass the filepath and force selection-only mode
-    # because the caller pre-selects objects before invoking us.
-    result = op_func(
-        filepath=filepath,
-        use_selection=True,
-        **native_kwargs,
-    )
+    # OBJ and PLY exporters in Blender 4.0+ use a different
+    # keyword for the output path.
+    if fmt.id in {"OBJ", "PLY"}:
+        result = op_func(
+            filepath=filepath,
+            export_selected_objects=True,
+            **native_kwargs,
+        )
+    else:
+        result = op_func(
+            filepath=filepath,
+            use_selection=True,
+            **native_kwargs,
+        )
 
     if result != {"FINISHED"}:
         raise RuntimeError(

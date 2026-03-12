@@ -80,13 +80,13 @@ class TestResolveName:
     def test_counter_digits(self) -> None:
         """Counter is appended when digits > 0."""
         rule = NamingRule(counter_digits=3)
-        ctx = {"object_name": "Cube", "counter": "5"}
-        assert resolve_name(rule, ctx) == "Cube_005"
+        ctx = {"object_name": "Cube", "counter": "1"}
+        assert resolve_name(rule, ctx) == "Cube_001"
 
     def test_counter_ignored_when_zero_digits(self) -> None:
         """No counter token when digits is 0."""
         rule = NamingRule(counter_digits=0)
-        ctx = {"object_name": "Cube", "counter": "5"}
+        ctx = {"object_name": "Cube", "counter": "1"}
         assert resolve_name(rule, ctx) == "Cube"
 
     def test_empty_context(self) -> None:

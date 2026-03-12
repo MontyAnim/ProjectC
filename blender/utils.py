@@ -228,18 +228,18 @@ def _gather_by_collection() -> List[ExportableItem]:
 
 
 def _gather_by_scene() -> List[ExportableItem]:
-    """Each scene becomes one export item containing all its mesh
-    objects that are in the current view layer."""
+    """Each scene becomes one export item containing all its
+    mesh objects.
 
-    view_layer_objects = set(
-        bpy.context.view_layer.objects,
-    )
+    The active scene is switched during export so that every
+    scene's objects are reachable via the view layer.
+    """
+
     items: List[ExportableItem] = []
     for scene in bpy.data.scenes:
         meshes = [
             obj for obj in scene.objects
             if obj.type == "MESH"
-            and obj in view_layer_objects
         ]
         if not meshes:
             continue
@@ -254,26 +254,33 @@ def _gather_by_scene() -> List[ExportableItem]:
 
 
 def _gather_all() -> List[ExportableItem]:
-    """Every mesh object in the current view layer becomes its
-    own export item."""
+    """Every mesh object across all scenes becomes its own
+    export item.
+
+    Objects that appear in multiple scenes are only included
+    once (from the first scene encountered).
+    """
 
     items: List[ExportableItem] = []
-    for obj in bpy.context.view_layer.objects:
-        if obj.type != "MESH":
-            continue
-        col_name = (
-            obj.users_collection[0].name
-            if obj.users_collection
-            else ""
-        )
-        items.append(
-            ExportableItem(
-                name=obj.name,
-                objects=[obj],
-                collection_name=col_name,
-                scene_name=bpy.context.scene.name,
-            ),
-        )
+    seen: set[str] = set()
+    for scene in bpy.data.scenes:
+        for obj in scene.objects:
+            if obj.type != "MESH" or obj.name in seen:
+                continue
+            seen.add(obj.name)
+            col_name = (
+                obj.users_collection[0].name
+                if obj.users_collection
+                else ""
+            )
+            items.append(
+                ExportableItem(
+                    name=obj.name,
+                    objects=[obj],
+                    collection_name=col_name,
+                    scene_name=scene.name,
+                ),
+            )
     return items
 
 

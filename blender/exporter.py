@@ -9,7 +9,9 @@ does.
 
 from __future__ import annotations
 
+import ast
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Dict, List
 
 import bpy
@@ -122,6 +124,151 @@ def get_format_by_id(format_id: str) -> FormatInfo | None:
         if fmt.id == format_id:
             return fmt
     return None
+
+
+# -- Preset support ---------------------------------------------------
+
+# Properties managed by BatchExporter that must not be
+# overridden by a preset file.
+_PRESET_SKIP = {
+    "filepath", "filename", "directory",
+    "use_selection", "export_selected_objects",
+    "filter_glob", "check_existing",
+}
+
+# Module-level cache that keeps enum-item strings alive
+# so Blender's UI does not garbage-collect them.
+_preset_items_cache: list[tuple[str, str, str]] = []
+
+
+def discover_presets(
+    format_id: str,
+) -> list[tuple[str, str, str]]:
+    """Find operator presets for the given export format.
+
+    Parameters:
+        format_id: Upper-case format id (e.g. ``"FBX"``).
+
+    Returns:
+        A list of ``(preset_id, label, filepath)`` tuples.
+        *preset_id* is the filename stem, *label* is a
+        human-readable name derived from the stem.
+    """
+
+    fmt = get_format_by_id(format_id)
+    if fmt is None:
+        return []
+
+    subdir = f"operator/{fmt.operator}"
+    presets: list[tuple[str, str, str]] = []
+    seen: set[str] = set()
+
+    for directory in bpy.utils.preset_paths(subdir):
+        preset_dir = Path(directory)
+        if not preset_dir.is_dir():
+            continue
+        for f in sorted(preset_dir.glob("*.py")):
+            if f.stem in seen:
+                continue
+            seen.add(f.stem)
+            label = f.stem.replace("_", " ").title()
+            presets.append((f.stem, label, str(f)))
+
+    return presets
+
+
+def resolve_preset_path(
+    format_id: str,
+    preset_id: str,
+) -> str | None:
+    """Resolve a preset identifier to its full file path.
+
+    Parameters:
+        format_id: Upper-case format id.
+        preset_id: Preset identifier (filename stem).
+
+    Returns:
+        The absolute path of the preset file, or ``None``
+        if not found.
+    """
+
+    for pid, _, fpath in discover_presets(format_id):
+        if pid == preset_id:
+            return fpath
+    return None
+
+
+def load_preset_kwargs(
+    preset_path: str,
+) -> Dict[str, Any]:
+    """Parse a Blender operator preset file into kwargs.
+
+    Reads ``op.<property> = <value>`` lines and converts
+    them with :func:`ast.literal_eval`.  Properties that
+    BatchExporter manages itself (filepath, selection, etc.)
+    are skipped.
+
+    Parameters:
+        preset_path: Absolute path to a ``.py`` preset file.
+
+    Returns:
+        A dictionary of keyword arguments suitable for
+        passing to the native export operator.
+    """
+
+    kwargs: Dict[str, Any] = {}
+    path = Path(preset_path)
+    if not path.is_file():
+        return kwargs
+
+    text = path.read_text(encoding="utf-8")
+    for line in text.splitlines():
+        line = line.strip()
+        if not line.startswith("op."):
+            continue
+        _, rest = line.split("op.", 1)
+        prop, _, value_str = rest.partition(" = ")
+        prop = prop.strip()
+        if prop in _PRESET_SKIP or not value_str:
+            continue
+        try:
+            kwargs[prop] = ast.literal_eval(value_str)
+        except (ValueError, SyntaxError):
+            pass
+
+    return kwargs
+
+
+def get_preset_items(
+    self: Any,
+    context: Any,
+) -> list[tuple[str, str, str]]:
+    """EnumProperty callback that returns preset items.
+
+    Lists available native export presets for the currently
+    selected format.  Results are cached at module level to
+    prevent Blender from garbage-collecting the strings.
+
+    Parameters:
+        self: The Blender property group.
+        context: The current Blender context.
+
+    Returns:
+        A list of ``(identifier, name, description)`` tuples.
+    """
+
+    global _preset_items_cache  # noqa: PLW0603
+
+    items: list[tuple[str, str, str]] = [
+        ("NONE", "Default", "Use default export settings"),
+    ]
+    for preset_id, label, _ in discover_presets(
+        self.export_format,
+    ):
+        items.append((preset_id, label, ""))
+
+    _preset_items_cache = items
+    return _preset_items_cache
 
 
 def export_single(

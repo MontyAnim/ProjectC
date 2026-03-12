@@ -44,8 +44,12 @@ class TestEnsureOutputDir:
     def test_invalid_drive_raises_os_error(
         self,
     ) -> None:
-        """An invalid drive letter raises OSError."""
-        with pytest.raises(OSError, match="Cannot create"):
+        """An invalid drive letter raises OSError with a
+        clean message (no chained traceback)."""
+        with pytest.raises(
+            OSError,
+            match="drive or root.*does not exist",
+        ):
             ensure_output_dir(Path("Z:/nonexistent/path"))
 
 

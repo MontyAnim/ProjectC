@@ -26,12 +26,22 @@ def ensure_output_dir(path: Path) -> Path:
             invalid drive letter or permissions error).
     """
 
+    # Validate the drive / root anchor exists before
+    # attempting to create a deep directory tree.
+    anchor = path.anchor
+    if anchor and not Path(anchor).exists():
+        raise OSError(
+            f"Cannot create output directory '{path}': "
+            f"drive or root '{anchor}' does not exist"
+        )
+
     try:
         path.mkdir(parents=True, exist_ok=True)
     except (FileNotFoundError, OSError) as exc:
         raise OSError(
-            f"Cannot create output directory '{path}': {exc}"
-        ) from exc
+            f"Cannot create output directory '{path}': "
+            f"{exc}"
+        ) from None
     return path
 
 

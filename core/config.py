@@ -50,6 +50,12 @@ class ExportJobConfig:
         default_factory=dict,
     )
     create_subdirs: bool = False
+    filter_prefix: str = ""
+    filter_suffix: str = ""
+    export_preset: str = "NONE"
+    export_at_origin: bool = False
+    pack_lods: bool = False
+    export_textures: bool = False
 
     # -- Serialisation helpers ----------------------------------------
 
@@ -76,6 +82,12 @@ class ExportJobConfig:
             "scope": self.scope.value,
             "native_export_kwargs": self.native_export_kwargs,
             "create_subdirs": self.create_subdirs,
+            "filter_prefix": self.filter_prefix,
+            "filter_suffix": self.filter_suffix,
+            "export_preset": self.export_preset,
+            "export_at_origin": self.export_at_origin,
+            "pack_lods": self.pack_lods,
+            "export_textures": self.export_textures,
         }
 
     @classmethod
@@ -117,4 +129,14 @@ class ExportJobConfig:
                 "native_export_kwargs", {},
             ),
             create_subdirs=data.get("create_subdirs", False),
+            filter_prefix=data.get("filter_prefix", ""),
+            filter_suffix=data.get("filter_suffix", ""),
+            export_preset=data.get("export_preset", "NONE"),
+            export_at_origin=data.get(
+                "export_at_origin", False,
+            ),
+            pack_lods=data.get("pack_lods", False),
+            export_textures=data.get(
+                "export_textures", False,
+            ),
         )

@@ -1,0 +1,501 @@
+{
+  "app_name": "Application",
+  "tester": "QA",
+  "started_at": "2026-03-11T21:46:26.100682",
+  "completed_at": "2026-03-11T22:45:03.203734",
+  "summary": {
+    "total": 23,
+    "passed": 20,
+    "failed": 3,
+    "skipped": 0,
+    "pending": 0,
+    "pass_rate": "87.0%"
+  },
+  "categories": [
+    {
+      "id": "1",
+      "title": "Bug Fix Re-verification",
+      "tests": [
+        {
+          "id": "1.1",
+          "title": "Export by Scenes — View Layer Fix",
+          "result": "fail",
+          "notes": "Silently failing, only current scene is exported",
+          "steps": [
+            "Create 2 scenes, each with at least 1 mesh object",
+            "Switch to Scene 1",
+            "Open Batch Export, set scope to 'Scenes'",
+            "Set output dir, format to FBX, click OK"
+          ],
+          "expected": [
+            "One .fbx file per scene, named after the scene",
+            "No RuntimeError about view layer",
+            "Each file contains the meshes from that scene",
+            "Info area shows correct succeeded count"
+          ],
+          "references": [
+            "blender/utils.py :: _gather_by_scene()",
+            "blender/utils.py :: isolate_selection()"
+          ]
+        },
+        {
+          "id": "1.2",
+          "title": "Export All Objects — View Layer Fix",
+          "result": "fail",
+          "notes": "Objects in other scenes are not exported, maybe disclose to the user that all scenes will be exported, have an option to export the current scene only",
+          "steps": [
+            "Create a scene with 4 mesh objects visible in the current view layer",
+            "Optionally add objects to other scenes or hide some from the view layer",
+            "Open Batch Export, set scope to 'All Objects'",
+            "Set output dir, format to FBX, click OK"
+          ],
+          "expected": [
+            "Only objects in the current view layer are exported",
+            "Four individual .fbx files created for visible objects",
+            "Non-mesh objects (cameras, lights) are excluded",
+            "No RuntimeError about view layer objects"
+          ],
+          "references": [
+            "blender/utils.py :: _gather_all()",
+            "blender/utils.py :: isolate_selection()"
+          ]
+        },
+        {
+          "id": "1.3",
+          "title": "Export as OBJ — Operator Fix",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Select 1 mesh object",
+            "Set format to OBJ",
+            "Export"
+          ],
+          "expected": [
+            "A valid .obj file is created",
+            "No 'operator not found' error in the console",
+            "File can be re-imported into Blender"
+          ],
+          "references": [
+            "blender/exporter.py :: export_single()"
+          ]
+        },
+        {
+          "id": "1.4",
+          "title": "Invalid Output Path — Graceful Error",
+          "result": "fail",
+          "notes": "Python: Traceback (most recent call last):\n  File \"C:\\Program Files\\Blender Foundation\\Blender 4.5\\4.5\\python\\Lib\\pathlib.py\", line 1116, in mkdir\n    os.mkdir(self, mode)\nFileNotFoundError: [WinError 3] El sistema no puede encontrar la ruta especificada: 'Z:\\\\Users\\\\Diego Montúfar\\\\Documents\\\\TA_Portolio\\\\Tests\\\\Batch Export\\\\Isometric Diorama\\\\Props'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"C:\\Program Files\\Blender Foundation\\Blender 4.5\\4.5\\python\\Lib\\pathlib.py\", line 1116, in mkdir\n    os.mkdir(self, mode)\nFileNotFoundError: [WinError 3] El sistema no puede encontrar la ruta especificada: 'Z:\\\\Users\\\\Diego Montúfar\\\\Documents\\\\TA_Portolio\\\\Tests\\\\Batch Export\\\\Isometric Diorama'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"C:\\Program Files\\Blender Foundation\\Blender 4.5\\4.5\\python\\Lib\\pathlib.py\", line 1116, in mkdir\n    os.mkdir(self, mode)\nFileNotFoundError: [WinError 3] El sistema no puede encontrar la ruta especificada: 'Z:\\\\Users\\\\Diego Montúfar\\\\Documents\\\\TA_Portolio\\\\Tests\\\\Batch Export'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"C:\\Program Files\\Blender Foundation\\Blender 4.5\\4.5\\python\\Lib\\pathlib.py\", line 1116, in mkdir\n    os.mkdir(self, mode)\nFileNotFoundError: [WinError 3] El sistema no puede encontrar la ruta especificada: 'Z:\\\\Users\\\\Diego Montúfar\\\\Documents\\\\TA_Portolio\\\\Tests'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"C:\\Program Files\\Blender Foundation\\Blender 4.5\\4.5\\python\\Lib\\pathlib.py\", line 1116, in mkdir\n    os.mkdir(self, mode)\nFileNotFoundError: [WinError 3] El sistema no puede encontrar la ruta especificada: 'Z:\\\\Users\\\\Diego Montúfar\\\\Documents\\\\TA_Portolio'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"C:\\Program Files\\Blender Foundation\\Blender 4.5\\4.5\\python\\Lib\\pathlib.py\", line 1116, in mkdir\n    os.mkdir(self, mode)\nFileNotFoundError: [WinError 3] El sistema no puede encontrar la ruta especificada: 'Z:\\\\Users\\\\Diego Montúfar\\\\Documents'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"C:\\Program Files\\Blender Foundation\\Blender 4.5\\4.5\\python\\Lib\\pathlib.py\", line 1116, in mkdir\n    os.mkdir(self, mode)\nFileNotFoundError: [WinError 3] El sistema no puede encontrar la ruta especificada: 'Z:\\\\Users\\\\Diego Montúfar'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"C:\\Program Files\\Blender Foundation\\Blender 4.5\\4.5\\python\\Lib\\pathlib.py\", line 1116, in mkdir\n    os.mkdir(self, mode)\nFileNotFoundError: [WinError 3] El sistema no puede encontrar la ruta especificada: 'Z:\\\\Users'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"c:\\Users\\Diego Montúfar\\Documents\\TA_Portolio\\Repos\\ProjectC\\ProjectC\\core\\file_io.py\", line 30, in ensure_output_dir\n    path.mkdir(parents=True, exist_ok=True)\n  File \"C:\\Program Files\\Blender Foundation\\Blender 4.5\\4.5\\python\\Lib\\pathlib.py\", line 1120, in mkdir\n    self.parent.mkdir(parents=True, exist_ok=True)\n  File \"C:\\Program Files\\Blender Foundation\\Blender 4.5\\4.5\\python\\Lib\\pathlib.py\", line 1120, in mkdir\n    self.parent.mkdir(parents=True, exist_ok=True)\n  File \"C:\\Program Files\\Blender Foundation\\Blender 4.5\\4.5\\python\\Lib\\pathlib.py\", line 1120, in mkdir\n    self.parent.mkdir(parents=True, exist_ok=True)\n  [Previous line repeated 5 more times]\n  File \"C:\\Program Files\\Blender Foundation\\Blender 4.5\\4.5\\python\\Lib\\pathlib.py\", line 1116, in mkdir\n    os.mkdir(self, mode)\nFileNotFoundError: [WinError 3] El sistema no puede encontrar la ruta especificada: 'Z:\\\\'\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"c:\\Users\\Diego Montúfar\\Documents\\TA_Portolio\\Repos\\ProjectC\\ProjectC\\core\\file_io.py\", line 32, in ensure_output_dir\n    raise OSError(\nOSError: Cannot create output directory 'Z:\\Users\\Diego Montúfar\\Documents\\TA_Portolio\\Tests\\Batch Export\\Isometric Diorama\\Props': [WinError 3] El sistema no puede encontrar la ruta especificada: 'Z:\\\\'\n",
+          "steps": [
+            "Set output directory to a non-existent drive or invalid path (e.g. 'Z:\\nonexistent\\path')",
+            "Select an object and attempt to export"
+          ],
+          "expected": [
+            "Export fails gracefully with a descriptive error in the report",
+            "Error message includes 'Cannot create' and the offending path",
+            "Report shows 0 succeeded, 1+ failed with error details",
+            "Blender remains usable (no crash)"
+          ],
+          "references": [
+            "core/file_io.py :: ensure_output_dir()",
+            "blender/operators.py :: BATCH_OT_export._export_items()"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "title": "Updated Behaviour Checks",
+      "tests": [
+        {
+          "id": "2.1",
+          "title": "Counter Digits Start at 1",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Select 3 mesh objects",
+            "Expand Naming, set Counter Digits to 3",
+            "Export as FBX with scope='Selected Objects'"
+          ],
+          "expected": [
+            "Files have 1-based zero-padded counters: e.g. 'Cube_001.fbx', 'Sphere_002.fbx', 'Cylinder_003.fbx'",
+            "Counter does NOT start at 000"
+          ],
+          "references": [
+            "core/naming.py :: resolve_name()",
+            "blender/operators.py :: BATCH_OT_export._export_items()"
+          ]
+        },
+        {
+          "id": "2.2",
+          "title": "Scope-aware Empty Selection Message",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Deselect all objects (Alt+A)",
+            "Open Batch Export, set scope to 'Selected Objects'",
+            "Set a valid output directory, click OK",
+            "Then change scope to 'All Objects' with an empty scene and repeat"
+          ],
+          "expected": [
+            "With 'Selected Objects' scope: Warning says 'No objects selected.'",
+            "With other scopes (empty scene): Warning says 'Nothing to export for the selected scope.'",
+            "No files created, no crash"
+          ],
+          "references": [
+            "blender/operators.py :: BATCH_OT_export.execute()"
+          ]
+        },
+        {
+          "id": "2.3",
+          "title": "Filename Preview Shows Counter Starting at 1",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Open the Batch Export dialog",
+            "Expand Naming, set Counter Digits to 3",
+            "Observe the preview filename"
+          ],
+          "expected": [
+            "Preview shows counter as '001' (not '000')",
+            "e.g. 'ObjectName_001.fbx'"
+          ],
+          "references": [
+            "blender/operators.py :: BATCH_OT_export._build_preview()"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "3",
+      "title": "New Feature — Advanced UI Section",
+      "tests": [
+        {
+          "id": "3.1",
+          "title": "Advanced Section Visible and Collapsible",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Open the Batch Export dialog",
+            "Observe the layout — there should be four sections: Output, Naming, Filters, Advanced",
+            "Click the 'Advanced' triangle to expand it",
+            "Verify all advanced options appear",
+            "Click the triangle again to collapse"
+          ],
+          "expected": [
+            "Advanced section is collapsed by default (triangle points right)",
+            "Expanding shows three checkboxes: 'Export at Origin', 'Pack LODs', 'Export Textures'",
+            "Collapsing hides all three options",
+            "Triangle icon toggles between TRIA_RIGHT and TRIA_DOWN"
+          ],
+          "references": [
+            "blender/operators.py :: BATCH_OT_export.draw()",
+            "blender/ui.py :: BatchExportSettings.show_advanced"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "4",
+      "title": "New Feature — Export at Origin",
+      "tests": [
+        {
+          "id": "4.1",
+          "title": "Export at Origin — Objects Moved to Origin",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Place a mesh object at location (5, 10, 3)",
+            "Select it, open Batch Export",
+            "Expand Advanced, enable 'Export at Origin'",
+            "Export as FBX"
+          ],
+          "expected": [
+            "A valid .fbx file is created",
+            "Re-importing the FBX shows the object at world origin (0, 0, 0)",
+            "The original object in the scene is back at (5, 10, 3) after export"
+          ],
+          "references": [
+            "blender/utils.py :: export_at_origin()",
+            "blender/operators.py :: BATCH_OT_export._export_items()"
+          ]
+        },
+        {
+          "id": "4.2",
+          "title": "Export at Origin — Disabled by Default",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Place a mesh object at location (5, 10, 3)",
+            "Select it, export with default Advanced settings (Export at Origin unchecked)"
+          ],
+          "expected": [
+            "Re-importing the FBX shows the object at its original location (5, 10, 3)",
+            "Position is NOT reset to origin"
+          ],
+          "references": [
+            "blender/utils.py :: export_at_origin()",
+            "blender/ui.py :: BatchExportSettings.export_at_origin"
+          ]
+        },
+        {
+          "id": "4.3",
+          "title": "Export at Origin — Multiple Objects",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Place 3 mesh objects at different locations: (1,2,3), (4,5,6), (7,8,9)",
+            "Select all 3, enable 'Export at Origin'",
+            "Export as FBX with scope 'Selected Objects'"
+          ],
+          "expected": [
+            "Three .fbx files created",
+            "Each file has its object at (0, 0, 0) when re-imported",
+            "All original objects are restored to their original positions after export"
+          ],
+          "references": [
+            "blender/utils.py :: export_at_origin()"
+          ]
+        },
+        {
+          "id": "4.4",
+          "title": "Export at Origin — Restores on Failure",
+          "result": "pass",
+          "notes": "I modified the output directory to something that does not exist, instead of failing, the program created the directory, this is dangerous",
+          "steps": [
+            "Place an object at (5, 10, 3)",
+            "Enable 'Export at Origin'",
+            "Set output to an invalid path to force an export error"
+          ],
+          "expected": [
+            "Export fails with a graceful error",
+            "The object's location is restored to (5, 10, 3) even after failure"
+          ],
+          "references": [
+            "blender/utils.py :: export_at_origin()"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "5",
+      "title": "New Feature — LOD Packing",
+      "tests": [
+        {
+          "id": "5.1",
+          "title": "LOD Packing — Groups LOD Variants",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Create 4 objects: 'Chair_LOD0', 'Chair_LOD1', 'Table_LOD0', 'Table_LOD1'",
+            "Select all 4, open Batch Export",
+            "Expand Advanced, enable 'Pack LODs'",
+            "Export as FBX with scope 'Selected Objects'"
+          ],
+          "expected": [
+            "Two .fbx files created: 'Chair.fbx' and 'Table.fbx'",
+            "Chair.fbx contains both Chair_LOD0 and Chair_LOD1 meshes",
+            "Table.fbx contains both Table_LOD0 and Table_LOD1 meshes",
+            "Report shows 2 succeeded"
+          ],
+          "references": [
+            "blender/utils.py :: group_lod_items()",
+            "blender/operators.py :: BATCH_OT_export.execute()"
+          ]
+        },
+        {
+          "id": "5.2",
+          "title": "LOD Packing — Mixed LOD and Non-LOD Objects",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Create 3 objects: 'Chair_LOD0', 'Chair_LOD1', 'Lamp'",
+            "Select all 3, enable 'Pack LODs'",
+            "Export as FBX"
+          ],
+          "expected": [
+            "Two .fbx files: 'Chair.fbx' (packed LODs) and 'Lamp.fbx' (standalone)",
+            "Report shows 2 succeeded"
+          ],
+          "references": [
+            "blender/utils.py :: group_lod_items()"
+          ]
+        },
+        {
+          "id": "5.3",
+          "title": "LOD Packing — Disabled by Default",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Create 2 objects: 'Chair_LOD0', 'Chair_LOD1'",
+            "Select both, leave 'Pack LODs' unchecked",
+            "Export as FBX"
+          ],
+          "expected": [
+            "Two separate .fbx files: 'Chair_LOD0.fbx' and 'Chair_LOD1.fbx'",
+            "Objects are NOT grouped"
+          ],
+          "references": [
+            "blender/ui.py :: BatchExportSettings.pack_lods"
+          ]
+        },
+        {
+          "id": "5.4",
+          "title": "LOD Pattern Recognition",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Create objects with various LOD naming patterns: 'Cube_LOD0', 'Cube-LOD1', 'CubeLOD2', 'Cube_lod3'",
+            "Select all, enable 'Pack LODs', export"
+          ],
+          "expected": [
+            "All four objects are grouped into a single 'Cube.fbx' file",
+            "The regex pattern handles underscore, hyphen, and no separator, and is case-insensitive"
+          ],
+          "references": [
+            "blender/utils.py :: _LOD_PATTERN",
+            "blender/utils.py :: group_lod_items()"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "6",
+      "title": "New Feature — Texture Export",
+      "tests": [
+        {
+          "id": "6.1",
+          "title": "Texture Export — Copies Textures",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Create a mesh object with a material that has an Image Texture node pointing to a valid image file",
+            "Select it, expand Advanced, enable 'Export Textures'",
+            "Export as FBX"
+          ],
+          "expected": [
+            "The .fbx file is created",
+            "A 'textures/<MaterialName>/' folder is created in the output directory",
+            "The image file is copied into that folder",
+            "Info area shows 'Copied N texture(s).'"
+          ],
+          "references": [
+            "blender/utils.py :: copy_textures_for_objects()",
+            "blender/operators.py :: BATCH_OT_export.execute()"
+          ]
+        },
+        {
+          "id": "6.2",
+          "title": "Texture Export — Skips Duplicates",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Create 2 objects sharing the same material with the same image texture",
+            "Select both, enable 'Export Textures'",
+            "Export"
+          ],
+          "expected": [
+            "The texture file is copied only once (no duplicate copies)",
+            "Info shows 'Copied 1 texture(s).' (not 2)"
+          ],
+          "references": [
+            "blender/utils.py :: copy_textures_for_objects()"
+          ]
+        },
+        {
+          "id": "6.3",
+          "title": "Texture Export — No Textures Graceful",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Create an object with a material that has no Image Texture nodes",
+            "Enable 'Export Textures', export"
+          ],
+          "expected": [
+            "Export succeeds normally",
+            "No 'textures/' folder is created",
+            "No error or crash"
+          ],
+          "references": [
+            "blender/utils.py :: copy_textures_for_objects()"
+          ]
+        },
+        {
+          "id": "6.4",
+          "title": "Texture Export — Disabled by Default",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Create an object with image textures",
+            "Leave 'Export Textures' unchecked, export"
+          ],
+          "expected": [
+            "No 'textures/' folder is created",
+            "No textures are copied"
+          ],
+          "references": [
+            "blender/ui.py :: BatchExportSettings.export_textures"
+          ]
+        },
+        {
+          "id": "6.5",
+          "title": "Texture Export — Missing Source File",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Create a material with an Image Texture node, but point it to a file that doesn't exist on disk",
+            "Enable 'Export Textures', export"
+          ],
+          "expected": [
+            "The export itself succeeds",
+            "The missing texture is silently skipped (no crash, no error)",
+            "Other valid textures are still copied"
+          ],
+          "references": [
+            "blender/utils.py :: copy_textures_for_objects()"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "7",
+      "title": "New Feature — Progress Indicator",
+      "tests": [
+        {
+          "id": "7.1",
+          "title": "Progress Bar During Export",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Create a scene with 10+ mesh objects",
+            "Select all, export as FBX",
+            "Watch the Blender status bar during export"
+          ],
+          "expected": [
+            "A progress indicator is visible in the Blender status bar during export",
+            "Progress advances as each item is exported",
+            "Progress bar disappears after export completes"
+          ],
+          "references": [
+            "blender/operators.py :: BATCH_OT_export._export_items()"
+          ]
+        },
+        {
+          "id": "7.2",
+          "title": "Progress Cleans Up on Failure",
+          "result": "pass",
+          "notes": "",
+          "steps": [
+            "Set up a scenario where export partially fails mid-way",
+            "Observe the progress bar after the export finishes"
+          ],
+          "expected": [
+            "wm.progress_end() is called even if some exports fail",
+            "No stuck progress indicator in the status bar"
+          ],
+          "references": [
+            "blender/operators.py :: BATCH_OT_export._export_items()"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -7,6 +7,7 @@ batch-export loop, plus a helper for picking the output directory.
 
 from __future__ import annotations
 
+import json
 import time
 from pathlib import Path
 from typing import Any, Set
@@ -27,6 +28,8 @@ from blender.exporter import (
     export_single,
     get_format_by_id,
     get_supported_formats,
+    load_preset_kwargs,
+    resolve_preset_path,
 )
 from blender.utils import (
     ExportableItem,
@@ -80,14 +83,9 @@ class BATCH_OT_export(bpy.types.Operator):
         # -- Output (always visible) ----------------------------------
         box = layout.box()
         box.label(text="Output", icon="EXPORT")
-        row = box.row(align=True)
-        row.prop(settings, "output_dir", text="")
-        row.operator(
-            "batch_exporter.pick_output_dir",
-            text="",
-            icon="FILE_FOLDER",
-        )
+        box.prop(settings, "output_dir", text="")
         box.prop(settings, "export_format")
+        box.prop(settings, "export_preset")
         box.prop(settings, "export_scope")
 
         # -- Filename preview -----------------------------------------
@@ -153,6 +151,19 @@ class BATCH_OT_export(bpy.types.Operator):
             col.prop(settings, "export_at_origin")
             col.prop(settings, "pack_lods")
             col.prop(settings, "export_textures")
+
+        # -- Save / Load config ---------------------------------------
+        row = layout.row(align=True)
+        row.operator(
+            "batch_exporter.save_config",
+            text="Save Config",
+            icon="FILE_TICK",
+        )
+        row.operator(
+            "batch_exporter.load_config",
+            text="Load Config",
+            icon="FILE_FOLDER",
+        )
 
     @staticmethod
     def _build_preview(
@@ -303,12 +314,30 @@ class BATCH_OT_export(bpy.types.Operator):
             use_collection_name=settings.use_collection_name,
             counter_digits=settings.counter_digits,
         )
+        # Load native export kwargs from the selected
+        # preset, if any.
+        preset_kwargs: dict[str, Any] = {}
+        if settings.export_preset != "NONE":
+            path = resolve_preset_path(
+                settings.export_format,
+                settings.export_preset,
+            )
+            if path:
+                preset_kwargs = load_preset_kwargs(path)
+
         return ExportJobConfig(
             output_dir=settings.output_dir,
             format=settings.export_format,
             naming_rule=rule,
             scope=ExportScope(settings.export_scope),
+            native_export_kwargs=preset_kwargs,
             create_subdirs=settings.create_subdirs,
+            filter_prefix=settings.filter_prefix,
+            filter_suffix=settings.filter_suffix,
+            export_preset=settings.export_preset,
+            export_at_origin=settings.export_at_origin,
+            pack_lods=settings.pack_lods,
+            export_textures=settings.export_textures,
         )
 
     def _export_items(
@@ -327,6 +356,10 @@ class BATCH_OT_export(bpy.types.Operator):
         wm = bpy.context.window_manager
         wm.progress_begin(0, total)
 
+        # Remember the original scene so we can restore it
+        # after exporting items that belong to other scenes.
+        original_scene = bpy.context.window.scene
+
         for idx, item in enumerate(items, start=1):
             wm.progress_update(idx)
 
@@ -344,16 +377,28 @@ class BATCH_OT_export(bpy.types.Operator):
                 create_subdirs=config.create_subdirs,
             )
 
-            # Ensure directories exist.
-            ensure_output_dir(out_path.parent)
-
             t0 = time.perf_counter()
             try:
+                # Ensure directories exist.
+                ensure_output_dir(out_path.parent)
+
+                # Switch scene when the item belongs to a
+                # different scene (e.g. Scenes / All scope).
+                target = bpy.data.scenes.get(
+                    item.scene_name,
+                )
+                if (
+                    target
+                    and bpy.context.window.scene
+                    != target
+                ):
+                    bpy.context.window.scene = target
+
                 with isolate_selection(item.objects), \
-                     export_at_origin(
-                         item.objects,
-                         enabled=export_at_origin_enabled,
-                     ):
+                    export_at_origin(
+                    item.objects,
+                    enabled=export_at_origin_enabled,
+                ):
                     export_single(
                         filepath=str(out_path),
                         format_id=config.format,
@@ -380,6 +425,9 @@ class BATCH_OT_export(bpy.types.Operator):
                     ),
                 )
 
+        # Restore the original scene and clean up progress.
+        if bpy.context.window.scene != original_scene:
+            bpy.context.window.scene = original_scene
         wm.progress_end()
         return report
 
@@ -433,11 +481,175 @@ class BATCH_OT_pick_output_dir(bpy.types.Operator):
         return {"RUNNING_MODAL"}
 
 
+class BATCH_OT_save_config(bpy.types.Operator):
+    """Save current batch-export settings to a JSON file."""
+
+    bl_idname = "batch_exporter.save_config"
+    bl_label = "Save Batch Export Config"
+    bl_description = (
+        "Save all current export settings to a JSON "
+        "file for CLI or reuse"
+    )
+    bl_options = {"REGISTER"}
+
+    filepath: bpy.props.StringProperty(
+        subtype="FILE_PATH",
+    )  # type: ignore[valid-type]
+
+    filter_glob: bpy.props.StringProperty(
+        default="*.json",
+        options={"HIDDEN"},
+    )  # type: ignore[valid-type]
+
+    def execute(
+        self,
+        context: bpy.types.Context,
+    ) -> Set[str]:
+        """Write settings to *filepath*.
+
+        Parameters:
+            context: Current Blender context.
+
+        Returns:
+            ``{'FINISHED'}`` on success,
+            ``{'CANCELLED'}`` on error.
+        """
+
+        settings = context.scene.batch_export_settings
+        config = BATCH_OT_export._build_config(settings)
+        data = config.to_dict()
+
+        out = Path(self.filepath)
+        if out.suffix.lower() != ".json":
+            out = out.with_suffix(".json")
+
+        try:
+            out.write_text(
+                json.dumps(data, indent=2),
+                encoding="utf-8",
+            )
+        except OSError as exc:
+            self.report(
+                {"ERROR"},
+                f"Cannot save config: {exc}",
+            )
+            return {"CANCELLED"}
+
+        self.report(
+            {"INFO"},
+            f"Config saved to {out}",
+        )
+        return {"FINISHED"}
+
+    def invoke(
+        self,
+        context: bpy.types.Context,
+        event: bpy.types.Event,
+    ) -> Set[str]:
+        """Open a file-save dialog."""
+
+        self.filepath = "batch_export_config.json"
+        context.window_manager.fileselect_add(self)
+        return {"RUNNING_MODAL"}
+
+
+class BATCH_OT_load_config(bpy.types.Operator):
+    """Load batch-export settings from a JSON file."""
+
+    bl_idname = "batch_exporter.load_config"
+    bl_label = "Load Batch Export Config"
+    bl_description = (
+        "Load export settings from a previously saved "
+        "JSON config file"
+    )
+    bl_options = {"REGISTER", "UNDO"}
+
+    filepath: bpy.props.StringProperty(
+        subtype="FILE_PATH",
+    )  # type: ignore[valid-type]
+
+    filter_glob: bpy.props.StringProperty(
+        default="*.json",
+        options={"HIDDEN"},
+    )  # type: ignore[valid-type]
+
+    def execute(
+        self,
+        context: bpy.types.Context,
+    ) -> Set[str]:
+        """Read settings from *filepath* into the scene.
+
+        Parameters:
+            context: Current Blender context.
+
+        Returns:
+            ``{'FINISHED'}`` on success,
+            ``{'CANCELLED'}`` on error.
+        """
+
+        path = Path(self.filepath)
+        try:
+            text = path.read_text(encoding="utf-8")
+            data = json.loads(text)
+        except (OSError, json.JSONDecodeError) as exc:
+            self.report(
+                {"ERROR"},
+                f"Cannot load config: {exc}",
+            )
+            return {"CANCELLED"}
+
+        config = ExportJobConfig.from_dict(data)
+        settings = context.scene.batch_export_settings
+
+        settings.output_dir = config.output_dir
+        settings.export_format = config.format
+        settings.export_scope = config.scope.value
+        settings.naming_prefix = config.naming_rule.prefix
+        settings.naming_suffix = config.naming_rule.suffix
+        settings.naming_separator = (
+            config.naming_rule.separator
+        )
+        settings.use_object_name = (
+            config.naming_rule.use_object_name
+        )
+        settings.use_collection_name = (
+            config.naming_rule.use_collection_name
+        )
+        settings.counter_digits = (
+            config.naming_rule.counter_digits
+        )
+        settings.create_subdirs = config.create_subdirs
+        settings.filter_prefix = config.filter_prefix
+        settings.filter_suffix = config.filter_suffix
+        settings.export_preset = config.export_preset
+        settings.export_at_origin = config.export_at_origin
+        settings.pack_lods = config.pack_lods
+        settings.export_textures = config.export_textures
+
+        self.report(
+            {"INFO"},
+            f"Config loaded from {path.name}",
+        )
+        return {"FINISHED"}
+
+    def invoke(
+        self,
+        context: bpy.types.Context,
+        event: bpy.types.Event,
+    ) -> Set[str]:
+        """Open a file-open dialog."""
+
+        context.window_manager.fileselect_add(self)
+        return {"RUNNING_MODAL"}
+
+
 # -- Registration -----------------------------------------------------
 
 _classes = (
     BATCH_OT_export,
     BATCH_OT_pick_output_dir,
+    BATCH_OT_save_config,
+    BATCH_OT_load_config,
 )
 
 

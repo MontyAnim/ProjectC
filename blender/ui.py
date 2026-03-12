@@ -12,7 +12,7 @@ from typing import Any, Set
 
 import bpy
 
-from blender.exporter import get_format_items
+from blender.exporter import get_format_items, get_preset_items
 from core.config import ExportScope
 
 
@@ -32,6 +32,15 @@ class BatchExportSettings(bpy.types.PropertyGroup):
         name="Format",
         description="Target file format",
         items=get_format_items,
+    )  # type: ignore[valid-type]
+
+    export_preset: bpy.props.EnumProperty(
+        name="Preset",
+        description=(
+            "Native export preset for the selected "
+            "format (e.g. FBX axis, scale, mesh options)"
+        ),
+        items=get_preset_items,
     )  # type: ignore[valid-type]
 
     export_scope: bpy.props.EnumProperty(
@@ -56,7 +65,8 @@ class BatchExportSettings(bpy.types.PropertyGroup):
             (
                 ExportScope.ALL.value,
                 "All Objects",
-                "Export every mesh object individually",
+                "Export every mesh object across all "
+                "scenes individually",
             ),
         ],
     )  # type: ignore[valid-type]

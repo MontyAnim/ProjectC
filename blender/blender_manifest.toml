@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 id = "batch_exporter"
 version = "1.0.0"
-name = "Batch Exporter"
+name = "Monty Batch Exporter"
 tagline = "Batch-export objects, collections, or scenes as individual files"
 maintainer = "Diego Montúfar"
 type = "add-on"

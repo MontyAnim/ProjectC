@@ -1,0 +1,104 @@
+{
+  "version": "3.0",
+  "description": "QA Test Plan v3 — BatchExporter (Blender 4.0+ Extension)",
+  "updated": "2026-03-11",
+  "notes": "Contains only tests that failed or had concerns in v2. 20 passed tests removed. Fixes applied: scene switching for cross-scene export, drive validation for invalid paths, ensure_output_dir moved inside try/except.",
+  "previous_version": "tests/archive/test_plan_v2.json",
+  "categories": [
+    {
+      "id": "1",
+      "title": "Bug Fix Re-verification",
+      "description": "Tests that failed in v2 and were fixed. Must be re-run to confirm the fixes.",
+      "tests": [
+        {
+          "id": "1.1",
+          "title": "Export by Scenes — Cross-Scene Fix",
+          "origin": "v2 test 1.1 (FAILED — only current scene exported)",
+          "bug_fixed": "_gather_by_scene() was filtering by current view layer, excluding objects from other scenes. Fixed by removing the view layer filter and adding scene switching in _export_items() so each scene's objects are reachable.",
+          "steps": [
+            "Create 2 scenes, each with at least 1 mesh object",
+            "Switch to Scene 1",
+            "Open Batch Export, set scope to 'Scenes'",
+            "Set output dir, format to FBX, click OK"
+          ],
+          "expected": [
+            "One .fbx file per scene, named after the scene",
+            "Both scenes are exported (not just the active one)",
+            "Each file contains the meshes from that scene",
+            "Info area shows correct succeeded count (2)",
+            "After export, the active scene is restored to Scene 1"
+          ],
+          "references": [
+            "blender/utils.py :: _gather_by_scene()",
+            "blender/operators.py :: BATCH_OT_export._export_items()"
+          ]
+        },
+        {
+          "id": "1.2",
+          "title": "Export All Objects — Cross-Scene Fix",
+          "origin": "v2 test 1.2 (FAILED — objects in other scenes not exported)",
+          "bug_fixed": "_gather_all() was iterating only bpy.context.view_layer.objects. Fixed to iterate all scenes with deduplication, and _export_items() now switches scene before exporting each item.",
+          "steps": [
+            "Create 2 scenes: Scene 1 with 3 mesh objects, Scene 2 with 2 mesh objects",
+            "Switch to Scene 1",
+            "Open Batch Export, set scope to 'All Objects'",
+            "Set output dir, format to FBX, click OK"
+          ],
+          "expected": [
+            "Five individual .fbx files created (one per mesh across both scenes)",
+            "Non-mesh objects (cameras, lights) are excluded",
+            "No duplicate files for objects that appear in multiple scenes",
+            "After export, the active scene is restored to Scene 1"
+          ],
+          "references": [
+            "blender/utils.py :: _gather_all()",
+            "blender/operators.py :: BATCH_OT_export._export_items()"
+          ]
+        },
+        {
+          "id": "1.3",
+          "title": "Invalid Output Path — Clean Error",
+          "origin": "v2 test 1.4 (FAILED — full traceback chain printed to console)",
+          "bug_fixed": "Two fixes: (1) ensure_output_dir() now validates the drive/root anchor exists before attempting mkdir, giving a clean error. Uses 'from None' to suppress chained tracebacks. (2) ensure_output_dir() call moved inside try/except in _export_items() so the error is caught and recorded in the report.",
+          "steps": [
+            "Set output directory to a non-existent drive (e.g. 'Z:\\nonexistent\\path')",
+            "Select an object and attempt to export"
+          ],
+          "expected": [
+            "Export fails gracefully with a single clean error line",
+            "Error message includes 'drive or root' and 'does not exist'",
+            "No chained traceback (no 'During handling of the above exception' spam)",
+            "Report shows 0 succeeded, 1 failed with error details",
+            "Blender remains usable (no crash)"
+          ],
+          "references": [
+            "core/file_io.py :: ensure_output_dir()",
+            "blender/operators.py :: BATCH_OT_export._export_items()"
+          ]
+        },
+        {
+          "id": "1.4",
+          "title": "Export at Origin — No Unwanted Directory Creation",
+          "origin": "v2 test 4.4 (PASSED with concern — 'instead of failing, the program created the directory, this is dangerous')",
+          "bug_fixed": "ensure_output_dir() now validates the drive/root anchor exists before calling mkdir(parents=True). Paths on non-existent drives are rejected immediately. Creating subdirectories on valid drives remains intentional behaviour.",
+          "steps": [
+            "Place an object at (5, 10, 3)",
+            "Enable 'Export at Origin'",
+            "Set output to a path on a non-existent drive (e.g. 'Z:\\some\\deep\\path')",
+            "Attempt to export"
+          ],
+          "expected": [
+            "Export fails with a clean error about the drive not existing",
+            "No directories are created on the non-existent drive",
+            "The object's location is restored to (5, 10, 3) even after failure",
+            "On a valid drive, subdirectories ARE created as expected (this is normal behaviour)"
+          ],
+          "references": [
+            "core/file_io.py :: ensure_output_dir()",
+            "blender/utils.py :: export_at_origin()"
+          ]
+        }
+      ]
+    }
+  ]
+}

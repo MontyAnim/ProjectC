@@ -1,0 +1,12 @@
+schema_version = "1.0.0"
+id = "batch_exporter"
+version = "0.1.0"
+name = "BatchExporter"
+tagline = "Batch-export objects, collections, or scenes as individual files"
+maintainer = "Diego Montúfar"
+type = "add-on"
+
+blender_version_min = "4.0.0"
+
+[permissions]
+files = "Export files to disk"

@@ -205,10 +205,10 @@ def _run(args: argparse.Namespace) -> int:
                 bpy.context.window.scene = target
 
             with isolate_selection(item.objects), \
-                 export_at_origin(
-                     item.objects,
-                     enabled=config.export_at_origin,
-                 ):
+                export_at_origin(
+                item.objects,
+                enabled=config.export_at_origin,
+            ):
                 export_single(
                     filepath=str(out_path),
                     format_id=config.format,

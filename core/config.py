@@ -13,7 +13,7 @@ import enum
 from dataclasses import dataclass, field
 from typing import Any, Dict
 
-from core.naming import NamingRule
+from .naming import NamingRule
 
 
 class ExportScope(enum.Enum):
